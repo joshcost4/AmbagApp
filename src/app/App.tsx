@@ -602,8 +602,8 @@ export default function App() {
               <div className="w-5 h-5 rounded-full border border-current flex items-center justify-center">
                 <Plus className="w-3 h-3" />
               </div>  
-              Add person
             </button>
+              Add person
           </div>
         </div>
 
@@ -1256,7 +1256,7 @@ export default function App() {
       )}
 
       {/* ── Add Member Modal ────────────────────────────── */}
-      {showMemberModal && (
+{showMemberModal && (
         <div
           className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end md:items-center justify-center z-50"
           onClick={(e) => e.target === e.currentTarget && setShowMemberModal(false)}
@@ -1285,8 +1285,10 @@ export default function App() {
               <input
                 autoFocus
                 type="text"
-                placeholder="Enter trip or group name"
-                className="text-sm font-medium tracking-wide text-neutral-700 placeholder:text-neutral-400 placeholder:font-light bg-transparent border-b border-muted py-1 focus:outline-none focus:border-primary transition-all w-full max-w-md"
+                placeholder="Enter name"
+                value={newMemberName}
+                onChange={(e) => setNewMemberName(e.target.value)}
+                className="text-xs font-medium tracking-wide text-neutral-700 dark:text-neutral-200 placeholder:text-neutral-400 placeholder:font-light bg-transparent border-b border-muted py-1.5 focus:outline-none focus:border-primary transition-all w-full max-w-md"
               />
             </div>
             <div className="flex gap-3">
