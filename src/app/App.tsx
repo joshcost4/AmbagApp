@@ -424,9 +424,10 @@ export default function App() {
       style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}
     >
       {/* ── Top Nav ───────────────────────────────────────── */}
-      <nav className="sticky top-0 z-10 bg-background/90 backdrop-blur border-b border-border">
-        <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-3 sm:gap-4 md:gap-5">
+      <nav className="sticky top-0 z-10 bg-background/90 backdrop-blur border-b border-border w-full py-4 md:py-6">
+        <div className="max-w-5xl mx-auto px-4 flex items-center justify-between h-auto min-h-[4rem] md:min-h-[5rem]">
+          
+          <div className="flex items-center gap-3 sm:gap-4 md:gap-5 py-2">
             <img
               src="/logo.jpg"
               alt="AmbagApp logo"
@@ -435,32 +436,23 @@ export default function App() {
                 (e.target as HTMLImageElement).src = '/dist/logo.jpg';
               }}
             />
-            {/* Pinalaki natin ang text mula text-sm patungong bold text-xl at text-2xl/3xl sa desktop */}
             <span className="font-black tracking-tight text-xl text-neutral-900 sm:text-2xl md:text-3xl bg-gradient-to-r from-neutral-900 to-neutral-600 bg-clip-text text-transparent">
               AmbagApp
             </span>
           </div>
+
           <button
             onClick={() => setShowExpenseModal(true)}
             disabled={members.length === 0}
-            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-semibold transition-all ${
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold transition-all ${
               members.length === 0
                 ? "bg-muted text-muted-foreground cursor-not-allowed"
                 : "bg-primary text-primary-foreground hover:bg-primary/90"
             }`}
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Add Expense</span>
-            <span className="sm:hidden">Add</span>
-          </button>
-          {isAndroidDevice && !isStandaloneMode && !showInstallBanner && (
-            <button
-              onClick={() => setShowAndroidInstallInstructions(true)}
-              className="hidden md:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full border border-border text-sm font-semibold text-foreground hover:bg-secondary transition-all"
             >
               Install
             </button>
-          )}
+          )
         </div>
       </nav>
 
