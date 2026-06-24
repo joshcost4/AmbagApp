@@ -424,7 +424,7 @@ export default function App() {
       style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}
     >
       {/* ── Top Nav ───────────────────────────────────────── */}
-      <nav className="sticky top-0 z-10 bg-background/90 backdrop-blur border-b border-border w-full py-4 md:py-6">
+<nav className="sticky top-0 z-10 bg-background/90 backdrop-blur border-b border-border w-full py-4 md:py-6">
         <div className="max-w-5xl mx-auto px-4 flex items-center justify-between h-auto min-h-[4rem] md:min-h-[5rem]">
           
           <div className="flex items-center gap-3 sm:gap-4 md:gap-5 py-2">
@@ -449,10 +449,19 @@ export default function App() {
                 ? "bg-muted text-muted-foreground cursor-not-allowed"
                 : "bg-primary text-primary-foreground hover:bg-primary/90"
             }`}
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Add Expense</span>
+            <span className="sm:hidden">Add</span>
+          </button>
+          {isAndroidDevice && !isStandaloneMode && !showInstallBanner && (
+            <button
+              onClick={() => setShowAndroidInstallInstructions(true)}
+              className="hidden md:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full border border-border text-sm font-semibold text-foreground hover:bg-secondary transition-all"
             >
               Install
             </button>
-          )
+          )}
         </div>
       </nav>
 
