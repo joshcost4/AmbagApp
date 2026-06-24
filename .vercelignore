@@ -1,0 +1,8 @@
+node_modules
+dist
+.vscode
+*.log
+*.local
+.DS_Store
+**/*.psd
+**/*.ai
