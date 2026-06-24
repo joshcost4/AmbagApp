@@ -523,7 +523,7 @@ export default function App() {
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-6">
             <div className="max-w-2xl w-full space-y-4">
               <div>
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-2">
+                <p className="text-xs font-medium uppercase tracking-wider text-neutral-500 placeholder:text-neutral-400 focus:outline-none transition-all">
                   Group Trip
                 </p>
                 <input
