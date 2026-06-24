@@ -18,6 +18,7 @@ function figmaAssetResolver() {
 }
 
 export default defineConfig({
+  base: '/', // ◄ ADD THIS LINE RIGHT HERE
   plugins: [
     figmaAssetResolver(),
     // The React and Tailwind plugins are both required for Make, even if
@@ -65,4 +66,4 @@ export default defineConfig({
 
   // File types to support raw imports. Never add .css, .tsx, or .ts files to this.
   assetsInclude: ['**/*.svg', '**/*.csv'],
-})
+}) // ◄ Don't forget to close the parentheses if you copy/paste!
