@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useMemo, useRef } from "react";
 import {
   Plus,
@@ -11,7 +12,6 @@ import {
   ChevronUp,
   Sparkles,
 } from "lucide-react";
-
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 interface Member {
