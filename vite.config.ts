@@ -1,15 +1,14 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import path from 'path'
+import { fileURLToPath } from 'url'
 
-// https://vite.dev/config/
+// Standard Vite layout config with path fallbacks
 export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
-      // If any old module tries to look for index.css in src, route it to your theme file
-      './index.css': path.resolve(__dirname, './src/styles/theme.css'),
-      '../index.css': path.resolve(__dirname, './src/styles/theme.css'),
+      './index.css': fileURLToPath(new URL('./src/styles/theme.css', import.meta.url)),
+      '../index.css': fileURLToPath(new URL('./src/styles/theme.css', import.meta.url)),
     }
   }
 })
