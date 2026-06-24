@@ -426,13 +426,19 @@ export default function App() {
       {/* ── Top Nav ───────────────────────────────────────── */}
       <nav className="sticky top-0 z-10 bg-background/90 backdrop-blur border-b border-border">
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 sm:gap-4 md:gap-5">
             <img
               src="/logo.jpg"
               alt="AmbagApp logo"
-              className="w-10 h-10 rounded-3xl object-cover bg-muted"
+              className="w-12 h-12 rounded-full object-cover bg-muted transition-all duration-300 sm:w-14 sm:h-14 md:w-16 md:h-16 shadow-sm"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = '/dist/logo.jpg';
+              }}
             />
-            <span className="font-semibold text-sm tracking-tight">AmbagApp</span>
+            {/* Pinalaki natin ang text mula text-sm patungong bold text-xl at text-2xl/3xl sa desktop */}
+            <span className="font-black tracking-tight text-xl text-neutral-900 sm:text-2xl md:text-3xl bg-gradient-to-r from-neutral-900 to-neutral-600 bg-clip-text text-transparent">
+              AmbagApp
+            </span>
           </div>
           <button
             onClick={() => setShowExpenseModal(true)}
