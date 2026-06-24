@@ -424,10 +424,9 @@ export default function App() {
       style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}
     >
       {/* ── Top Nav ───────────────────────────────────────── */}
-<nav className="sticky top-0 z-10 bg-background/90 backdrop-blur border-b border-border py-3 md:py-4">
-        <div className="max-w-5xl mx-auto px-4 flex items-center justify-between py-2">
-          
-          <div className="flex items-center gap-3 sm:gap-4 md:gap-5 my-1">
+      <nav className="sticky top-0 z-10 bg-background/90 backdrop-blur border-b border-border">
+        <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
+          <div className="flex items-center gap-3 sm:gap-4 md:gap-5">
             <img
               src="/logo.jpg"
               alt="AmbagApp logo"
@@ -436,11 +435,11 @@ export default function App() {
                 (e.target as HTMLImageElement).src = '/dist/logo.jpg';
               }}
             />
+            {/* Pinalaki natin ang text mula text-sm patungong bold text-xl at text-2xl/3xl sa desktop */}
             <span className="font-black tracking-tight text-xl text-neutral-900 sm:text-2xl md:text-3xl bg-gradient-to-r from-neutral-900 to-neutral-600 bg-clip-text text-transparent">
               AmbagApp
             </span>
           </div>
-
           <button
             onClick={() => setShowExpenseModal(true)}
             disabled={members.length === 0}
@@ -523,7 +522,7 @@ export default function App() {
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-6">
             <div className="max-w-2xl w-full space-y-4">
               <div>
-                <p className="text-xs font-medium uppercase tracking-wider text-neutral-500 placeholder:text-neutral-400 focus:outline-none transition-all">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-2">
                   Group Trip
                 </p>
                 <input
@@ -1287,11 +1286,8 @@ export default function App() {
               <input
                 autoFocus
                 type="text"
-                placeholder="Name"
-                value={newMemberName}
-                onChange={(e) => setNewMemberName(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && addMember()}
-                className="flex-1 px-3.5 py-2.5 bg-input-background rounded-xl border border-border text-sm focus:outline-none focus:ring-2 focus:ring-foreground/10 transition-all"
+                placeholder="Enter trip or group name"
+                className="text-sm font-medium tracking-wide text-neutral-700 placeholder:text-neutral-400 placeholder:font-light bg-transparent border-b border-muted py-1 focus:outline-none focus:border-primary transition-all w-full max-w-md"
               />
             </div>
             <div className="flex gap-3">
