@@ -1287,7 +1287,7 @@ export default function App() {
                 autoFocus
                 type="text"
                 placeholder="Enter trip or group name"
-                className="w-full max-w-xs px-4 py-1.5 text-xs font-medium tracking-wide bg-neutral-50/50 border border-neutral-200 rounded-lg text-neutral-700 placeholder:text-neutral-400 focus:outline-none focus:border-neutral-400 focus:bg-white transition-all duration-200"
+                className="text-sm font-medium tracking-wide text-neutral-700 placeholder:text-neutral-400 placeholder:font-light bg-transparent border-b border-muted py-1 focus:outline-none focus:border-primary transition-all w-full max-w-md"
               />
             </div>
             <div className="flex gap-3">
