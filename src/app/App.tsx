@@ -620,16 +620,35 @@ export default function App() {
                   { id: "settle", label: "Settle Up", icon: Sparkles },
                 ] as const
               ).map(({ id, label, icon: Icon }) => (
-                <button
+<button
                   key={id}
                   onClick={() => setActiveTab(id)}
-                  className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all relative ₱{
+                  className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all relative ${
                     activeTab === id
                       ? "bg-card text-foreground shadow-sm"
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  <Icon className="w-3.5 h-3.5" />
+                  {id === "expenses" ? (
+                    <svg 
+                      className="w-3.5 h-3.5 text-current flex-shrink-0" 
+                      viewBox="0 0 24 24" 
+                      fill="none" 
+                      stroke="currentColor" 
+                      strokeWidth="2.5" 
+                      strokeLinecap="round" 
+                      strokeLinejoin="round"
+                    >
+                      <path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z" />
+                      <path d="M9 10h5" />
+                      <path d="M9 12h4" />
+                      <path d="M9 8h5a2.5 2.5 0 1 1 0 5H9V8Z" />
+                      <path d="M11 15v1" />
+                    </svg>
+                  ) : (
+                    <Icon className="w-3.5 h-3.5" />
+                  )}
+
                   {label}
                   {id === "settle" && pendingSettlements.length > 0 && (
                     <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
