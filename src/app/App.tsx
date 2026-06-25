@@ -557,9 +557,7 @@ export default function App() {
 
         {/* ── Layout ───────────────────────────────────────── */}
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-6">
-          {/* Main Column */}
           <div>
-            {/* Tabs */}
             <div className="flex gap-0.5 mb-6 p-1 bg-secondary rounded-xl w-full sm:w-auto sm:inline-flex">
               {(
                 [
@@ -593,6 +591,7 @@ export default function App() {
                 </button>
               ))}
             </div>
+          </div>
 
             {/* ── Expenses Tab ─────────────────────────── */}
             {activeTab === "expenses" && (
