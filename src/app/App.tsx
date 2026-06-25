@@ -444,13 +444,13 @@ export default function App() {
             onClick={() => setShowExpenseModal(true)}
             className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold transition-all ${
               members.length === 0
-                ? "bg-neutral-100 text-neutral-400 cursor-not-allowed"
-                : "bg-neutral-900 text-white hover:bg-neutral-800"
+                ? "!bg-neutral-100 !text-neutral-400 cursor-not-allowed"
+                : "!bg-neutral-900 !text-white hover:!bg-neutral-800"
             }`}
           >
-            <Plus className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Add Expense</span>
-            <span className="sm:hidden">Add</span>
+            <Plus className="w-3.5 h-3.5 !text-white" />
+            <span className="hidden sm:inline !text-white">Add Expense</span>
+            <span className="sm:hidden !text-white">Add</span>
           </button>
           
           {isAndroidDevice && !isStandaloneMode && !showInstallBanner && (
