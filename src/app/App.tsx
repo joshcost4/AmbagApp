@@ -555,41 +555,52 @@ export default function App() {
           </div>
         </div>
 
-        {/* ── Layout ───────────────────────────────────────── */}
+      {/* ── Layout ───────────────────────────────────────── */}
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-6">
           <div>
             <div className="flex gap-0.5 mb-6 p-1 bg-secondary rounded-xl w-full sm:w-auto sm:inline-flex">
-              {(
-                [
-                  { id: "expenses", label: "Expenses", icon: Receipt },
-                  { id: "balances", label: "Balances", icon: BarChart3 },
-                  { id: "settle", label: "Settle Up", icon: Sparkles },
-                ] as const
-              ).map(({ id, label, icon: Icon }) => (
-                <button
-                  key={id}
-                  onClick={() => setActiveTab(id)}
-                  className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all relative ${
-                    activeTab === id
-                      ? "bg-card text-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  {id === "expenses" ? (
-                    <span className="w-3.5 h-3.5 text-xs font-bold text-current flex items-center justify-center select-none leading-none">
-                      ₱
-                    </span>
-                  ) : (
-                    <Icon className="w-3.5 h-3.5" />
-                  )}
-                  {label}
-                  {id === "settle" && pendingSettlements.length > 0 && (
-                    <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
-                      {pendingSettlements.length}
-                    </span>
-                  )}
-                </button>
-              ))}
+              <button
+                onClick={() => setActiveTab("expenses")}
+                className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all relative ${
+                  activeTab === "expenses"
+                    ? "bg-card text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <span className="w-3.5 h-3.5 text-xs font-bold text-current flex items-center justify-center select-none leading-none">
+                  ₱
+                </span>
+                Expenses
+              </button>
+
+              <button
+                onClick={() => setActiveTab("balances")}
+                className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all relative ${
+                  activeTab === "balances"
+                    ? "bg-card text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <BarChart3 className="w-3.5 h-3.5" />
+                Balances
+              </button>
+
+              <button
+                onClick={() => setActiveTab("settle")}
+                className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all relative ${
+                  activeTab === "settle"
+                    ? "bg-card text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                Settle Up
+                {pendingSettlements.length > 0 && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                    {pendingSettlements.length}
+                  </span>
+                )}
+              </button>
             </div>
           </div>
 
