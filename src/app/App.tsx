@@ -227,10 +227,9 @@ export default function App() {
 
   // Add expense form
   const [expenseForm, setExpenseForm] = useState<ExpenseFormState>(savedState?.expenseForm ?? getDefaultExpenseForm());
-
   const [newMemberName, setNewMemberName] = useState(savedState?.newMemberName ?? "");
 
-  // Refs
+  // Refs for keyboard flow in Add Expense modal
   const descRef = useRef<HTMLInputElement | null>(null);
   const amountRef = useRef<HTMLInputElement | null>(null);
   const dateRef = useRef<HTMLInputElement | null>(null);
@@ -241,6 +240,7 @@ export default function App() {
 
   const [deferredInstallPrompt, setDeferredInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showInstallBanner, setShowInstallBanner] = useState(false);
+  const [showIOSInstallInstructions, setShowIOSInstallInstructions] = useState(false);
   const [showAndroidInstallInstructions, setShowAndroidInstallInstructions] = useState(false);
   const [isAndroidDevice, setIsAndroidDevice] = useState(false);
   const [isStandaloneMode, setIsStandaloneMode] = useState(false);
@@ -250,9 +250,22 @@ export default function App() {
       event.preventDefault();
       setDeferredInstallPrompt(event as BeforeInstallPromptEvent);
       setShowInstallBanner(true);
+      setShowAndroidInstallInstructions(false);
+      setShowIOSInstallInstructions(false);
     };
+
+    const handleAppInstalled = () => {
+      setDeferredInstallPrompt(null);
+      setShowInstallBanner(false);
+    };
+
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
-    return () => window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    window.addEventListener("appinstalled", handleAppInstalled);
+
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+      window.removeEventListener("appinstalled", handleAppInstalled);
+    };
   }, []);
 
   useEffect(() => {
@@ -270,13 +283,23 @@ export default function App() {
 
   useEffect(() => {
     const ua = window.navigator.userAgent;
+    const isIOS = /iphone|ipad|ipod/i.test(ua);
     const isAndroid = /android/i.test(ua);
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || ('standalone' in navigator && (navigator as any).standalone);
 
     setIsAndroidDevice(isAndroid);
     setIsStandaloneMode(isStandalone);
+
+    if (!isStandalone) {
+      if (isIOS) {
+        setShowIOSInstallInstructions(true);
+      } else if (isAndroid) {
+        setShowAndroidInstallInstructions(true);
+      }
+    }
   }, []);
 
+  // Derived
   const balances = useMemo(() => {
     const base = computeBalances(members, expenses);
     appliedSettlements.forEach((s) => {
@@ -370,6 +393,16 @@ export default function App() {
     }));
   }
 
+  // Auto-select all members if no one is selected when modal opens
+  useEffect(() => {
+    if (showExpenseModal && expenseForm.splitAmong.length === 0 && members.length > 0) {
+      setExpenseForm(prev => ({
+        ...prev,
+        splitAmong: members.map(m => m.id)
+      }));
+    }
+  }, [showExpenseModal, members]);
+
   function markSettlementPaid(s: Settlement) {
     setAppliedSettlements((prev) => {
       const exists = prev.some((p) => p.fromId === s.fromId && p.toId === s.toId && Math.abs(p.amount - s.amount) < 0.01);
@@ -395,7 +428,7 @@ export default function App() {
       className="min-h-screen bg-background"
       style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}
     >
-      {/* Nav */}
+      {/* ── Top Nav ───────────────────────────────────────── */}
       <nav className="sticky top-0 z-10 bg-background/90 backdrop-blur border-b border-border w-full py-4 md:py-6">
         <div className="max-w-5xl mx-auto px-4 flex items-center justify-between h-auto min-h-[4rem] md:min-h-[5rem]">
           <div className="flex items-center gap-3 sm:gap-4 md:gap-5 py-2">
@@ -421,12 +454,20 @@ export default function App() {
             <span className="hidden sm:inline" style={{ color: '#ffffff' }}>Add Expense</span>
             <span className="sm:hidden" style={{ color: '#ffffff' }}>Add</span>
           </button>
+          
+          {isAndroidDevice && !isStandaloneMode && !showInstallBanner && (
+            <button
+              onClick={() => setShowAndroidInstallInstructions(true)}
+              className="hidden md:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full border border-border text-sm font-semibold text-foreground hover:bg-secondary transition-all"
+            >
+              Install
+            </button>
+          )}
         </div>
       </nav>
 
-      {/* Main Container */}
+      {/* ── Group Header ──────────────────────────────────── */}
       <div className="max-w-5xl mx-auto px-4 py-6">
-        {/* Header Strip */}
         <div className="mb-8">
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-6">
             <div className="max-w-2xl w-full space-y-4">
@@ -440,6 +481,13 @@ export default function App() {
                   value={tripName}
                   onChange={(e) => setTripName(e.target.value)}
                   placeholder="Enter trip or group name"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      tripNameRef.current?.blur();
+                      addMemberBtnRef.current?.focus();
+                    }
+                  }}
                   className="w-full px-3.5 py-3 bg-input-background rounded-3xl border border-border text-3xl md:text-4xl font-semibold tracking-tight text-foreground focus:outline-none focus:ring-2 focus:ring-foreground/10 transition-all"
                 />
               </div>
@@ -447,30 +495,50 @@ export default function App() {
             <div className="flex gap-4 sm:gap-8">
               <div>
                 <p className="text-xs text-muted-foreground mb-1">Total spent</p>
-                <p className="text-2xl font-semibold tracking-tight" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+                <p
+                  className="text-2xl font-semibold tracking-tight"
+                  style={{ fontFamily: "'JetBrains Mono', monospace" }}
+                >
                   ₱{fmt(totalSpent)}
                 </p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground mb-1">Per person</p>
-                <p className="text-2xl font-semibold tracking-tight text-muted-foreground" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+                <p
+                  className="text-2xl font-semibold tracking-tight text-muted-foreground"
+                  style={{ fontFamily: "'JetBrains Mono', monospace" }}
+                >
                   ₱{fmt(totalSpent / Math.max(1, members.length))}
                 </p>
               </div>
             </div>
           </div>
 
+          {/* Members strip */}
           <div className="mt-5 flex items-center gap-2 flex-wrap">
             {members.map((m) => {
               const bal = balances[m.id] || 0;
               return (
-                <div key={m.id} className="group flex items-center gap-2 pl-1 pr-2 py-1 bg-card border border-border rounded-full text-sm">
+                <div
+                  key={m.id}
+                  className="group flex items-center gap-2 pl-1 pr-2 py-1 bg-card border border-border rounded-full text-sm transition-colors"
+                >
                   <Avatar name={m.name} color={m.color} size="sm" />
                   <span className="font-medium">{m.name}</span>
-                  <span className="text-xs font-medium" style={{ fontFamily: "'JetBrains Mono', monospace", color: bal >= 0 ? "#059669" : "#dc2626" }}>
+                  <span
+                    className="text-xs font-medium"
+                    style={{
+                      fontFamily: "'JetBrains Mono', monospace",
+                      color: bal >= 0 ? "#059669" : "#dc2626",
+                    }}
+                  >
                     {bal >= 0 ? "+" : "-"}₱{fmt(Math.abs(bal))}
                   </span>
-                  <button onClick={() => removeMember(m.id)} className="ml-2 p-0.5 rounded opacity-0 group-hover:opacity-100 hover:bg-red-500/10 transition-opacity">
+                  <button
+                    onClick={() => removeMember(m.id)}
+                    className="ml-2 p-0.5 rounded opacity-0 group-hover:opacity-100 hover:bg-red-500/10 transition-opacity"
+                    title="Remove person"
+                  >
                     <X className="w-3 h-3 text-red-500" />
                   </button>
                 </div>
@@ -481,32 +549,38 @@ export default function App() {
               onClick={() => setShowMemberModal(true)}
               className="flex items-center gap-1.5 pl-2 pr-3 py-1 border border-dashed border-border rounded-full text-sm text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors"
             >
-              <Plus className="w-3 h-3" />
+              <div className="w-5 h-5 rounded-full border border-current flex items-center justify-center">
+                <Plus className="w-3 h-3" />
+              </div>
               <span>Add person</span>
             </button>
           </div>
         </div>
 
-        {/* Layout Split */}
+        {/* ── Layout ───────────────────────────────────────── */}
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-6">
-          {/* Left Main Column */}
           <div>
-            {/* Tabs Row */}
             <div className="flex gap-0.5 mb-6 p-1 bg-secondary rounded-xl w-full sm:w-auto sm:inline-flex">
               <button
                 onClick={() => setActiveTab("expenses")}
                 className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all relative ${
-                  activeTab === "expenses" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                  activeTab === "expenses"
+                    ? "bg-card text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
               >
-                <span className="w-3.5 h-3.5 text-xs font-bold flex items-center justify-center select-none leading-none">₱</span>
+                <span className="w-3.5 h-3.5 text-xs font-bold flex items-center justify-center select-none leading-none">
+                  ₱
+                </span>
                 Expenses
               </button>
 
               <button
                 onClick={() => setActiveTab("balances")}
                 className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all relative ${
-                  activeTab === "balances" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                  activeTab === "balances"
+                    ? "bg-card text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 <BarChart3 className="w-3.5 h-3.5" />
@@ -516,7 +590,9 @@ export default function App() {
               <button
                 onClick={() => setActiveTab("settle")}
                 className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all relative ${
-                  activeTab === "settle" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                  activeTab === "settle"
+                    ? "bg-card text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 <Sparkles className="w-3.5 h-3.5" />
@@ -529,65 +605,166 @@ export default function App() {
               </button>
             </div>
 
-            {/* Expenses Render */}
+            {/* ── Expenses Tab ─────────────────────────── */}
             {activeTab === "expenses" && (
-              <div className="space-y-2">
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <p className="text-sm text-muted-foreground">
+                    {expenses.length} expense{expenses.length !== 1 ? "s" : ""}
+                  </p>
+                </div>
+
                 {expenses.length === 0 && (
                   <div className="text-center py-16 border border-dashed border-border rounded-xl text-muted-foreground">
+                    <div className="mx-auto mb-3 text-5xl opacity-40">₱</div>
                     <p className="font-medium text-sm">No expenses yet</p>
+                    <p className="text-xs mt-1">Add your first shared expense above</p>
                   </div>
                 )}
-                {expenses.map((expense) => {
-                  const payer = getMember(expense.paidById);
-                  const share = expense.amount / expense.splitAmong.length;
-                  const isExpanded = expandedExpenseId === expense.id;
-                  return (
-                    <div key={expense.id} className="bg-card border border-border rounded-xl overflow-hidden shadow-sm">
-                      <button className="w-full text-left px-4 py-4" onClick={() => setExpandedExpenseId(isExpanded ? null : expense.id)}>
-                        <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 bg-secondary rounded-lg flex items-center justify-center text-base">{CATEGORY_EMOJI[expense.category] || "📌"}</div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-start justify-between">
-                              <p className="font-medium text-foreground truncate">{expense.description}</p>
-                              <p className="font-semibold text-foreground" style={{ fontFamily: "'JetBrains Mono', monospace" }}>₱{fmt(expense.amount)}</p>
+
+                <div className="space-y-2">
+                  {expenses.map((expense) => {
+                    const payer = getMember(expense.paidById);
+                    const share = expense.amount / expense.splitAmong.length;
+                    const isExpanded = expandedExpenseId === expense.id;
+                    return (
+                      <div
+                        key={expense.id}
+                        className="bg-card border border-border rounded-xl overflow-hidden transition-shadow hover:shadow-sm"
+                      >
+                        <button
+                          className="w-full text-left px-4 py-4"
+                          onClick={() => setExpandedExpenseId(isExpanded ? null : expense.id)}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 bg-secondary rounded-lg flex items-center justify-center text-base flex-shrink-0">
+                              {CATEGORY_EMOJI[expense.category] || "📌"}
                             </div>
-                            <div className="flex items-center gap-2 mt-0.5 text-xs text-muted-foreground">
-                              <span>{expense.date}</span>
-                              <span>·</span>
-                              <span>{payer?.name} paid</span>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-start justify-between gap-2">
+                                <p className="font-medium text-foreground truncate">{expense.description}</p>
+                                <p
+                                  className="font-semibold text-foreground flex-shrink-0"
+                                  style={{ fontFamily: "'JetBrains Mono', monospace" }}
+                                >
+                                  ₱{fmt(expense.amount)}
+                                </p>
+                              </div>
+                              <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                                <span className="text-xs text-muted-foreground">{expense.date}</span>
+                                <span className="text-muted-foreground text-xs">·</span>
+                                <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                  <span
+                                    className="w-2 h-2 rounded-full flex-shrink-0"
+                                    style={{ background: payer?.color }}
+                                  />
+                                  {payer?.name} paid
+                                </span>
+                                <span className="text-muted-foreground text-xs">·</span>
+                                <span className="text-xs text-muted-foreground">
+                                  ₱{fmt(share)}/person
+                                </span>
+                              </div>
+                            </div>
+                            <div className="ml-2 flex-shrink-0">
+                              {isExpanded ? (
+                                <ChevronUp className="w-4 h-4 text-muted-foreground" />
+                              ) : (
+                                <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                              )}
                             </div>
                           </div>
-                        </div>
-                      </button>
-                      {isExpanded && (
-                        <div className="px-4 pb-4 border-t border-border pt-4">
-                          <button onClick={() => removeExpense(expense.id)} className="text-xs text-red-500 hover:underline flex items-center gap-1">
-                            Remove expense
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+                        </button>
+
+                        {isExpanded && (
+                          <div className="px-4 pb-4 border-t border-border pt-4">
+                            <div className="flex items-start gap-6 flex-wrap">
+                              <div>
+                                <p className="text-xs text-muted-foreground mb-2 uppercase tracking-wide">
+                                  Split between
+                                </p>
+                                <div className="flex gap-1.5">
+                                  {expense.splitAmong.map((id) => {
+                                    const m = getMember(id);
+                                    return m ? (
+                                      <div key={id} className="flex flex-col items-center gap-1">
+                                        <Avatar name={m.name} color={m.color} size="sm" />
+                                        <span className="text-[10px] text-muted-foreground">{m.name}</span>
+                                      </div>
+                                    ) : null;
+                                  })}
+                                </div>
+                              </div>
+                              <div>
+                                <p className="text-xs text-muted-foreground mb-2 uppercase tracking-wide">
+                                  Category
+                                </p>
+                                <Badge>{expense.category}</Badge>
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => removeExpense(expense.id)}
+                              className="mt-4 text-xs text-muted-foreground hover:text-red-500 transition-colors flex items-center gap-1"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                              Remove expense
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             )}
 
-            {/* Balances Render */}
+            {/* ── Balances Tab ─────────────────────────── */}
             {activeTab === "balances" && (
               <div className="space-y-3">
                 {members.map((member) => {
                   const bal = balances[member.id] || 0;
                   const isPos = bal >= 0;
+                  const totalPaid = expenses
+                    .filter((e) => e.paidById === member.id)
+                    .reduce((s, e) => s + e.amount, 0);
+                  const maxBal = Math.max(...Object.values(balances).map(Math.abs), 1);
+
                   return (
                     <div key={member.id} className="bg-card border border-border rounded-xl p-5">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <Avatar name={member.name} color={member.color} size="md" />
-                          <p className="font-semibold">{member.name}</p>
+                      <div className="flex items-center gap-4">
+                        <Avatar name={member.name} color={member.color} size="lg" />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-baseline justify-between gap-3">
+                            <p className="font-semibold text-foreground">{member.name}</p>
+                            <p
+                              className="font-semibold text-lg flex-shrink-0"
+                              style={{
+                                fontFamily: "'JetBrains Mono', monospace",
+                                color: isPos ? "#059669" : "#dc2626",
+                              }}
+                            >
+                              {isPos ? "+" : "-"}₱{fmt(Math.abs(bal))}
+                            </p>
+                          </div>
+                          <div className="flex items-center justify-between mt-1">
+                            <p className="text-xs text-muted-foreground">
+                              Paid ₱{fmt(totalPaid)} · owes{" "}
+                              {isPos ? "nothing" : `₱${fmt(Math.abs(bal))}`}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {isPos ? "gets back" : "owes"}
+                            </p>
+                          </div>
+                          <div className="mt-3 h-1.5 bg-secondary rounded-full overflow-hidden">
+                            <div
+                              className="h-full rounded-full transition-all duration-500"
+                              style={{
+                                width: `${(Math.abs(bal) / maxBal) * 100}%`,
+                                background: isPos ? "#10b981" : "#ef4444",
+                              }}
+                            />
+                          </div>
                         </div>
-                        <p className="font-semibold text-lg" style={{ fontFamily: "'JetBrains Mono', monospace", color: isPos ? "#059669" : "#dc2626" }}>
-                          {isPos ? "+" : "-"}₱{fmt(Math.abs(bal))}
-                        </p>
                       </div>
                     </div>
                   );
@@ -595,78 +772,447 @@ export default function App() {
               </div>
             )}
 
-            {/* Settle Up Render */}
+            {/* ── Settle Up Tab ────────────────────────── */}
             {activeTab === "settle" && (
-              <div className="space-y-2">
-                {settlements.length === 0 && <div className="text-center py-16 text-muted-foreground">All settled up!</div>}
-                {pendingSettlements.map((s) => {
-                  const from = getMember(s.fromId);
-                  const to = getMember(s.toId);
-                  return (
-                    <div key={`${s.fromId}-${s.toId}`} className="bg-card border border-border rounded-xl p-4 flex items-center justify-between">
-                      <div className="text-sm">
-                        <span className="font-medium">{from?.name}</span> → <span className="font-medium">{to?.name}</span>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className="font-semibold text-red-500" style={{ fontFamily: "'JetBrains Mono', monospace" }}>₱{fmt(s.amount)}</span>
-                        <button onClick={() => markSettlementPaid(s)} className="px-3 py-1.5 bg-neutral-900 text-white rounded-lg text-xs font-semibold hover:bg-neutral-800">Paid ✓</button>
-                      </div>
+              <div>
+                {settlements.length === 0 && (
+                  <div className="text-center py-16 bg-card border border-border rounded-xl">
+                    <div className="w-12 h-12 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <Check className="w-6 h-6 text-emerald-600" />
                     </div>
-                  );
-                })}
+                    <p className="font-semibold text-foreground">All settled up!</p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      No outstanding payments between anyone.
+                    </p>
+                  </div>
+                )}
+
+                {pendingSettlements.length > 0 && (
+                  <div className="mb-6">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-3">
+                      Pending · {pendingSettlements.length}
+                    </p>
+                    <div className="space-y-2">
+                      {pendingSettlements.map((s) => {
+                        const from = getMember(s.fromId);
+                        const to = getMember(s.toId);
+                        const key = `${s.fromId}-${s.toId}`;
+                        return (
+                          <div
+                            key={key}
+                            className="bg-card border border-border rounded-xl p-4 flex items-center gap-3"
+                          >
+                            <Avatar name={from?.name || "?"} color={from?.color || "#ccc"} size="md" />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-medium text-sm">{from?.name}</span>
+                                <ArrowRight className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+                                <span className="font-medium text-sm">{to?.name}</span>
+                              </div>
+                              <p className="text-xs text-muted-foreground mt-0.5">needs to send</p>
+                            </div>
+                            <div className="flex items-center gap-3 flex-shrink-0">
+                              <p
+                                className="font-semibold text-red-500"
+                                style={{ fontFamily: "'JetBrains Mono', monospace" }}
+                              >
+                                ₱{fmt(s.amount)}
+                              </p>
+                              <button
+                                onClick={() => markSettlementPaid(s)}
+                                className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-xs font-semibold transition-colors"
+                              >
+                                Paid ✓
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {doneSettlements.length > 0 && (
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-3">
+                      Completed · {doneSettlements.length}
+                    </p>
+                    <div className="space-y-2">
+                      {doneSettlements.map((s) => {
+                        const from = getMember(s.fromId);
+                        const to = getMember(s.toId);
+                        const key = `${s.fromId}-${s.toId}`;
+                        return (
+                          <div
+                            key={key}
+                            className="bg-secondary/50 border border-border rounded-xl p-4 flex items-center gap-3 opacity-60"
+                          >
+                            <Avatar name={from?.name || "?"} color={from?.color || "#ccc"} size="md" />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium text-sm line-through text-muted-foreground">
+                                  {from?.name}
+                                </span>
+                                <ArrowRight className="w-3.5 h-3.5 text-muted-foreground" />
+                                <span className="font-medium text-sm line-through text-muted-foreground">
+                                  {to?.name}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                              <p
+                                className="font-semibold text-emerald-600 text-sm"
+                                style={{ fontFamily: "'JetBrains Mono', monospace" }}
+                              >
+                                ₱{fmt(s.amount)}
+                              </p>
+                              <Check className="w-4 h-4 text-emerald-600" />
+                              <button
+                                onClick={() => undoSettlementPaid(s)}
+                                className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                              >
+                                Undo
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
 
-          {/* Sidebar Right Column */}
+          {/* ── Sidebar ───────────────────────────────── */}
           <div className="space-y-4">
+            {/* Summary */}
             <div className="bg-card border border-border rounded-xl p-5">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-4">Overview</p>
-              <div className="space-y-3 text-sm">
-                <div className="flex justify-between"><span>Expenses</span><span className="font-semibold">{expenses.length}</span></div>
-                <div className="flex justify-between"><span>Total</span><span className="font-semibold" style={{ fontFamily: "'JetBrains Mono', monospace" }}>₱{fmt(totalSpent)}</span></div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-4">
+                Overview
+              </p>
+              <div className="space-y-3">
+                {[
+                  { label: "Expenses", value: `${expenses.length}`, mono: false },
+                  { label: "Total", value: `₱${fmt(totalSpent)}`, mono: true },
+                  {
+                    label: "Per person",
+                    value: `₱${fmt(totalSpent / Math.max(1, members.length))}`,
+                    mono: true,
+                  },
+                  { label: "People", value: `${members.length}`, mono: false },
+                  {
+                    label: "Outstanding",
+                    value: `${pendingSettlements.length} payments`,
+                    mono: false,
+                    color: pendingSettlements.length > 0 ? "#dc2626" : "#059669",
+                  },
+                ].map(({ label, value, mono, color }) => (
+                  <div key={label} className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">{label}</span>
+                    <span
+                      className="text-sm font-semibold"
+                      style={{
+                        fontFamily: mono ? "'JetBrains Mono', monospace" : undefined,
+                        color: color || undefined,
+                      }}
+                    >
+                      {value}
+                    </span>
+                  </div>
+                ))}
               </div>
+            </div>
+
+            {/* Category breakdown */}
+            <div className="bg-card border border-border rounded-xl p-5">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-4">
+                By Category
+              </p>
+              <div className="space-y-3">
+                {categoryTotals.map(([cat, total]) => {
+                  const pct = Math.round((total / totalSpent) * 100);
+                  return (
+                    <div key={cat}>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-sm flex items-center gap-1.5">
+                          <span>{CATEGORY_EMOJI[cat] || "📌"}</span>
+                          <span className="text-foreground">{cat}</span>
+                        </span>
+                        <span
+                          className="text-xs text-muted-foreground"
+                          style={{ fontFamily: "'JetBrains Mono', monospace" }}
+                        >
+                          ₱{fmt(total)}
+                        </span>
+                      </div>
+                      <div className="h-1 bg-secondary rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-foreground/20 rounded-full"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Top spender */}
+            <div className="bg-card border border-border rounded-xl p-5">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-4">
+                Who Paid Most
+              </p>
+              {members
+                .map((m) => ({
+                  member: m,
+                  paid: expenses.filter((e) => e.paidById === m.id).reduce((s, e) => s + e.amount, 0),
+                }))
+                .sort((a, b) => b.paid - a.paid)
+                .slice(0, 3)
+                .map(({ member, paid }, i) => (
+                  <div key={member.id} className={`flex items-center gap-3 ${i > 0 ? "mt-3" : ""}`}>
+                    <div className="text-xs text-muted-foreground w-4 text-center font-medium">
+                      {i + 1}
+                    </div>
+                    <Avatar name={member.name} color={member.color} size="sm" />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">{member.name}</p>
+                    </div>
+                    <p
+                      className="text-sm font-semibold text-muted-foreground"
+                      style={{ fontFamily: "'JetBrains Mono', monospace" }}
+                    >
+                      ₱{fmt(paid)}
+                    </p>
+                  </div>
+                ))}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Add Expense Modal */}
+      {/* ── Add Expense Modal ───────────────────────────── */}
       {showExpenseModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end md:items-center justify-center z-50">
+        <div
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end md:items-center justify-center z-50"
+          onClick={(e) => e.target === e.currentTarget && setShowExpenseModal(false)}
+        >
           <div className="bg-card w-full md:max-w-md md:rounded-2xl rounded-t-2xl border border-border shadow-xl max-h-[92vh] overflow-y-auto">
-            <div className="sticky top-0 bg-card border-b border-border px-5 py-4 flex items-center justify-between">
+            <div className="sticky top-0 bg-card border-b border-border px-5 py-4 flex items-center justify-between rounded-t-2xl">
               <h2 className="font-semibold text-base">New Expense</h2>
-              <button onClick={() => setShowExpenseModal(false)} className="p-1 rounded-lg bg-secondary"><X className="w-4 h-4" /></button>
+              <button
+                onClick={() => setShowExpenseModal(false)}
+                className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
+
             <div className="p-5 space-y-5">
+              {/* Description */}
               <div>
-                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide block mb-2">What for?</label>
-                <input autoFocus ref={descRef} type="text" placeholder="Dinner, Uber..." value={expenseForm.description} onChange={(e) => setExpenseForm((p) => ({ ...p, description: e.target.value }))} className="w-full px-3.5 py-2.5 bg-input-background rounded-xl border text-sm" />
+                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide block mb-2">
+                  What for?
+                </label>
+                <input
+                  autoFocus
+                  ref={descRef}
+                  type="text"
+                  placeholder="Dinner, Uber, Airbnb…"
+                  value={expenseForm.description}
+                  onChange={(e) => setExpenseForm((p) => ({ ...p, description: e.target.value }))}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      amountRef.current?.focus();
+                    }
+                  }}
+                  className="w-full px-3.5 py-2.5 bg-input-background rounded-xl border border-border text-sm focus:outline-none focus:ring-2 focus:ring-foreground/10 transition-all"
+                />
               </div>
-              <div>
-                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide block mb-2">Amount</label>
-                <input ref={amountRef} type="number" placeholder="0.00" value={expenseForm.amount} onChange={(e) => setExpenseForm((p) => ({ ...p, amount: e.target.value }))} className="w-full px-3.5 py-2.5 bg-input-background rounded-xl border text-sm" />
+
+              {/* Amount + Date */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide block mb-2">
+                    Amount
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
+                      ₱
+                    </span>
+                    <input
+                      ref={amountRef}
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      placeholder="0.00"
+                      value={expenseForm.amount}
+                      onChange={(e) => setExpenseForm((p) => ({ ...p, amount: e.target.value }))}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          dateRef.current?.focus();
+                        }
+                      }}
+                      className="w-full pl-7 pr-3.5 py-2.5 bg-input-background rounded-xl border border-border text-sm focus:outline-none focus:ring-2 focus:ring-foreground/10 transition-all"
+                      style={{ fontFamily: "'JetBrains Mono', monospace" }}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide block mb-2">
+                    Date
+                  </label>
+                  <input
+                    ref={dateRef}
+                    type="date"
+                    value={expenseForm.date}
+                    onChange={(e) => setExpenseForm((p) => ({ ...p, date: e.target.value }))}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        if (firstPayerRef.current) firstPayerRef.current.focus();
+                        else addExpenseBtnRef.current?.focus();
+                      }
+                    }}
+                    className="w-full px-3.5 py-2.5 bg-input-background rounded-xl border border-border text-sm focus:outline-none focus:ring-2 focus:ring-foreground/10 transition-all"
+                  />
+                </div>
               </div>
+
+              {/* Category */}
               <div>
-                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide block mb-2">Paid by</label>
+                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide block mb-2">
+                  Category
+                </label>
+                <div className="grid grid-cols-4 gap-2">
+                  {CATEGORIES.map((c) => (
+                    <button
+                      key={c}
+                      onClick={() => setExpenseForm((p) => ({ ...p, category: c }))}
+                      className={`flex flex-col items-center gap-1 p-2 rounded-xl text-xs border transition-all ${
+                        expenseForm.category === c
+                          ? "border-foreground bg-secondary"
+                          : "border-border text-muted-foreground hover:border-foreground/30"
+                      }`}
+                    >
+                      <span className="text-base">{CATEGORY_EMOJI[c]}</span>
+                      <span className="leading-tight text-center" style={{ fontSize: "10px" }}>
+                        {CATEGORY_SHORT[c] || c}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Paid by */}
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide block mb-2">
+                  Paid by
+                </label>
+                {members.length === 0 && (
+                  <div className="rounded-xl border border-dashed border-border bg-muted/5 p-4 text-sm text-muted-foreground">
+                    Add at least one person before logging an expense.
+                  </div>
+                )}
                 <div className="grid grid-cols-2 gap-2">
-                  {members.map((m) => (
-                    <button key={m.id} onClick={() => setExpenseForm((p) => ({ ...p, paidById: m.id }))} className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-sm ${expenseForm.paidById === m.id ? "border-black bg-secondary" : ""}`}>
+                  {members.map((m, idx) => (
+                    <button
+                      key={m.id}
+                      ref={idx === 0 ? firstPayerRef : undefined}
+                      onClick={() => setExpenseForm((p) => ({ ...p, paidById: m.id }))}
+                      className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm border transition-all ${
+                        expenseForm.paidById === m.id
+                          ? "border-foreground bg-secondary font-medium"
+                          : "border-border text-muted-foreground hover:text-foreground hover:border-foreground/30"
+                      }`}
+                    >
+                      <Avatar name={m.name} color={m.color} size="sm" />
                       {m.name}
                     </button>
                   ))}
                 </div>
               </div>
+
+              {/* Split between */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                    Split between
+                  </label>
+                  {expenseForm.amount && expenseForm.splitAmong.length > 0 && (
+                    <span
+                      className="text-xs text-muted-foreground"
+                      style={{ fontFamily: "'JetBrains Mono', monospace" }}
+                    >
+                      ₱{fmt(parseFloat(expenseForm.amount || "0") / expenseForm.splitAmong.length)}/ea
+                    </span>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  {members.map((m) => {
+                    const selected = expenseForm.splitAmong.includes(m.id);
+                    return (
+                      <button
+                        key={m.id}
+                        onClick={() => toggleSplit(m.id)}
+                        className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm border transition-all ${
+                          selected
+                            ? "border-foreground bg-secondary font-medium"
+                            : "border-border text-muted-foreground hover:text-foreground hover:border-foreground/30"
+                        }`}
+                      >
+                        <div
+                          className={`w-4 h-4 rounded flex items-center justify-center flex-shrink-0 border transition-all ${
+                            selected ? "border-transparent" : "border-border"
+                          }`}
+                          style={selected ? { background: m.color } : {}}
+                        >
+                          {selected && <Check className="w-2.5 h-2.5 text-white" />}
+                        </div>
+                        <Avatar name={m.name} color={m.color} size="sm" />
+                        {m.name}
+                      </button>
+                    );
+                  })}
+                </div>
+                {members.length > 0 && (
+                  <button
+                    onClick={() =>
+                      setExpenseForm((p) => ({
+                        ...p,
+                        splitAmong:
+                          p.splitAmong.length === members.length ? [] : members.map((m) => m.id),
+                      }))
+                    }
+                    className="mt-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {expenseForm.splitAmong.length === members.length ? "Deselect all" : "Select all"}
+                  </button>
+                )}
+              </div>
             </div>
-            <div className="p-5 border-t flex gap-3">
-              <button onClick={() => setShowExpenseModal(false)} className="flex-1 py-2.5 border rounded-xl text-sm font-medium">Cancel</button>
+
+            <div className="sticky bottom-0 bg-card border-t border-border px-5 py-4 flex gap-3">
+              <button
+                onClick={() => setShowExpenseModal(false)}
+                className="flex-1 py-2.5 border border-border rounded-xl text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Cancel
+              </button>
               <button
                 ref={addExpenseBtnRef}
                 onClick={addExpense}
-                disabled={!expenseForm.description.trim() || !expenseForm.amount}
+                disabled={
+                  !expenseForm.description.trim() ||
+                  !expenseForm.amount ||
+                  expenseForm.splitAmong.length === 0 ||
+                  !expenseForm.paidById
+                }
                 style={{ backgroundColor: '#171717', color: '#ffffff' }}
-                className="flex-1 py-2.5 rounded-xl text-sm font-semibold hover:bg-neutral-800 disabled:opacity-40 disabled:cursor-not-allowed text-white"
+                className="flex-1 py-2.5 bg-neutral-900 text-white rounded-xl text-sm font-semibold hover:bg-neutral-800 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 Add Expense
               </button>
@@ -675,19 +1221,60 @@ export default function App() {
         </div>
       )}
 
-      {/* Add Member Modal */}
+      {/* ── Add Member Modal ────────────────────────────── */}
       {showMemberModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-card w-full md:max-w-sm rounded-2xl border p-5 shadow-xl">
-            <h2 className="font-semibold text-base mb-4">Add Person</h2>
-            <input autoFocus type="text" placeholder="Enter name" value={newMemberName} onChange={(e) => setNewMemberName(e.target.value)} className="w-full px-3.5 py-2 bg-input-background border rounded-xl text-sm mb-4" />
+        <div
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end md:items-center justify-center z-50"
+          onClick={(e) => e.target === e.currentTarget && setShowMemberModal(false)}
+        >
+          <div className="bg-card w-full md:max-w-sm md:rounded-2xl rounded-t-2xl border border-border shadow-xl p-5">
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="font-semibold text-base">Add Person</h2>
+              <button
+                onClick={() => setShowMemberModal(false)}
+                className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="flex items-center gap-2 mb-5">
+              <div
+                className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0"
+                style={{
+                  background: newMemberName
+                    ? MEMBER_COLORS[members.length % MEMBER_COLORS.length]
+                    : "#d1d5db",
+                }}
+              >
+                {newMemberName ? newMemberName[0].toUpperCase() : <Users className="w-4 h-4" />}
+              </div>
+              <input
+                autoFocus
+                type="text"
+                placeholder="Enter name"
+                value={newMemberName}
+                onChange={(e) => setNewMemberName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && newMemberName.trim()) {
+                    e.preventDefault();
+                    addMember();
+                  }
+                }}
+                className="text-sm font-medium tracking-wide text-neutral-700 dark:text-neutral-200 placeholder:text-neutral-400 placeholder:font-light bg-transparent border-b border-muted py-1.5 focus:outline-none focus:border-primary transition-all w-full max-w-md"
+              />
+            </div>
             <div className="flex gap-3">
-              <button onClick={() => setShowMemberModal(false)} className="flex-1 py-2 border rounded-xl text-sm">Cancel</button>
+              <button
+                onClick={() => setShowMemberModal(false)}
+                className="flex-1 py-2.5 border border-border rounded-xl text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Cancel
+              </button>
               <button
                 onClick={addMember}
                 disabled={!newMemberName.trim()}
                 style={{ backgroundColor: '#171717', color: '#ffffff' }}
-                className="flex-1 py-2 rounded-xl text-sm font-semibold hover:bg-neutral-800 text-white disabled:opacity-40"
+                className="flex-1 py-2.5 bg-neutral-900 text-white rounded-xl text-sm font-semibold hover:bg-neutral-800 transition-all disabled:opacity-40"
               >
                 Add
               </button>
