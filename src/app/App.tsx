@@ -423,7 +423,7 @@ export default function App() {
       className="min-h-screen bg-background"
       style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}
     >
-    {/* ── Top Nav ───────────────────────────────────────── */}
+      {/* ── Top Nav ───────────────────────────────────────── */}
       <nav className="sticky top-0 z-10 bg-background/90 backdrop-blur border-b border-border w-full py-4 md:py-6">
         <div className="max-w-5xl mx-auto px-4 flex items-center justify-between h-auto min-h-[4rem] md:min-h-[5rem]">
           <div className="flex items-center gap-3 sm:gap-4 md:gap-5 py-2">
@@ -556,7 +556,7 @@ export default function App() {
         </div>
 
         {/* ── Layout ───────────────────────────────────────── */}
-<div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-6">
           {/* Main Column */}
           <div>
             {/* Tabs */}
@@ -982,7 +982,7 @@ export default function App() {
         </div>
       </div>
 
-    {/* ── Add Expense Modal ───────────────────────────── */}
+   {/* ── Add Expense Modal ───────────────────────────── */}
       {showExpenseModal && (
         <div
           className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end md:items-center justify-center z-50"
