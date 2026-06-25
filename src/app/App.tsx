@@ -629,21 +629,10 @@ export default function App() {
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
-{id === "expenses" ? (
-                    <svg 
-                      className="w-3.5 h-3.5 text-current flex-shrink-0" 
-                      viewBox="0 0 24 24" 
-                      fill="none" 
-                      stroke="currentColor" 
-                      strokeWidth="2.5" 
-                      strokeLinecap="round" 
-                      strokeLinejoin="round"
-                    >
-                      <path d="M6 10h7" />
-                      <path d="M6 13h6" />
-                      <path d="M6 7h7a3.5 3.5 0 1 1 0 7H6V7Z" />
-                      <path d="M9 16v2" />
-                    </svg>
+                  {id === "expenses" ? (
+                    <span className="w-3.5 h-3.5 text-xs font-bold text-current flex items-center justify-center select-none leading-none">
+                      ₱
+                    </span>
                   ) : (
                     <Icon className="w-3.5 h-3.5" />
                   )}
