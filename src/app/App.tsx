@@ -442,7 +442,7 @@ export default function App() {
 
           <button
             onClick={() => setShowExpenseModal(true)}
-            className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold transition-all ${
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold transition-all ₱{
               members.length === 0
                 ? "bg-muted text-muted-foreground cursor-not-allowed"
                 : "bg-primary text-primary-foreground hover:bg-primary/90"
