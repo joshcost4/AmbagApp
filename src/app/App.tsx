@@ -423,7 +423,7 @@ export default function App() {
       className="min-h-screen bg-background"
       style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}
     >
- {/* ── Top Nav ───────────────────────────────────────── */}
+    {/* ── Top Nav ───────────────────────────────────────── */}
       <nav className="sticky top-0 z-10 bg-background/90 backdrop-blur border-b border-border w-full py-4 md:py-6">
         <div className="max-w-5xl mx-auto px-4 flex items-center justify-between h-auto min-h-[4rem] md:min-h-[5rem]">
           <div className="flex items-center gap-3 sm:gap-4 md:gap-5 py-2">
