@@ -463,6 +463,7 @@ export default function App() {
           )}
         </div>
       </nav>
+
         {/* ── Group Header ──────────────────────────────────── */}
         <div className="mb-8">
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-6">
@@ -555,7 +556,7 @@ export default function App() {
         </div>
 
         {/* ── Layout ───────────────────────────────────────── */}
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-6">
+<div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-6">
           {/* Main Column */}
           <div>
             {/* Tabs */}
@@ -567,7 +568,7 @@ export default function App() {
                   { id: "settle", label: "Settle Up", icon: Sparkles },
                 ] as const
               ).map(({ id, label, icon: Icon }) => (
-<button
+                <button
                   key={id}
                   onClick={() => setActiveTab(id)}
                   className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all relative ${
@@ -981,7 +982,7 @@ export default function App() {
         </div>
       </div>
 
-      {/* ── Add Expense Modal ───────────────────────────── */}
+    {/* ── Add Expense Modal ───────────────────────────── */}
       {showExpenseModal && (
         <div
           className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end md:items-center justify-center z-50"
