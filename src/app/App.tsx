@@ -629,7 +629,7 @@ export default function App() {
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  {id === "expenses" ? (
+{id === "expenses" ? (
                     <svg 
                       className="w-3.5 h-3.5 text-current flex-shrink-0" 
                       viewBox="0 0 24 24" 
@@ -639,16 +639,14 @@ export default function App() {
                       strokeLinecap="round" 
                       strokeLinejoin="round"
                     >
-                      <path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z" />
-                      <path d="M9 10h5" />
-                      <path d="M9 12h4" />
-                      <path d="M9 8h5a2.5 2.5 0 1 1 0 5H9V8Z" />
-                      <path d="M11 15v1" />
+                      <path d="M6 10h7" />
+                      <path d="M6 13h6" />
+                      <path d="M6 7h7a3.5 3.5 0 1 1 0 7H6V7Z" />
+                      <path d="M9 16v2" />
                     </svg>
                   ) : (
                     <Icon className="w-3.5 h-3.5" />
                   )}
-
                   {label}
                   {id === "settle" && pendingSettlements.length > 0 && (
                     <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
