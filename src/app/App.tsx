@@ -82,6 +82,31 @@ const CATEGORY_SHORT: Record<string, string> = {
   Other: "Other",
 };
 
+const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+const [isInstallable, setIsInstallable] = useState(false);
+
+useEffect(() => {
+  const handleBeforeInstallPrompt = (e: Event) => {
+    e.preventDefault();
+    setDeferredPrompt(e);
+    setIsInstallable(true);
+  };
+  window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+  return () => {
+    window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+  };
+}, []);
+
+const handleInstallClick = async () => {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  const { outcome } = await deferredPrompt.userChoice;
+  if (outcome === 'accepted') {
+    setIsInstallable(false);
+  }
+  setDeferredPrompt(null);
+};
+
 // ─── Utilities ────────────────────────────────────────────────────────────────
 
 function uid() {
@@ -423,7 +448,7 @@ export default function App() {
       className="min-h-screen bg-background"
       style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}
     >
-      {/* ── Top Nav ───────────────────────────────────────── */}
+    {/* ── Top Nav ───────────────────────────────────────── */}
       <nav className="sticky top-0 z-10 bg-background/90 backdrop-blur border-b border-border w-full py-4 md:py-6">
         <div className="max-w-5xl mx-auto px-4 flex items-center justify-between h-auto min-h-[4rem] md:min-h-[5rem]">
           <div className="flex items-center gap-3 sm:gap-4 md:gap-5 py-2">
@@ -440,82 +465,43 @@ export default function App() {
             </span>
           </div>
 
-          <button
-            onClick={() => setShowExpenseModal(true)}
-            className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold transition-all ₱{
-              members.length === 0
-                ? "bg-muted text-muted-foreground cursor-not-allowed"
-                : "bg-primary text-primary-foreground hover:bg-primary/90"
-            }`}
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Add Expense</span>
-            <span className="sm:hidden">Add</span>
-          </button>
-          {isAndroidDevice && !isStandaloneMode && !showInstallBanner && (
-            <button
-              onClick={() => setShowAndroidInstallInstructions(true)}
-              className="hidden md:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full border border-border text-sm font-semibold text-foreground hover:bg-secondary transition-all"
-            >
-              Install
-            </button>
-          )}
-        </div>
-      </nav>
-
-      <div className="max-w-5xl mx-auto px-4 py-6 md:py-10">
-        {showInstallBanner && deferredInstallPrompt && (
-          <div className="mb-6 rounded-2xl border border-border bg-secondary p-4 text-sm text-foreground flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div>
-              <p className="font-semibold">Install AmbagApp</p>
-              <p className="text-muted-foreground mt-1">Quickly open this app from your home screen or desktop.</p>
-            </div>
-            <div className="flex gap-2 flex-wrap">
+          <div className="flex items-center gap-2">
+            {isInstallable && (
               <button
-                onClick={async () => {
-                  deferredInstallPrompt.prompt();
-                  const choice = await deferredInstallPrompt.userChoice;
-                  if (choice.outcome === "accepted") {
-                    setShowInstallBanner(false);
-                  }
-                }}
-                className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
+                onClick={handleInstallClick}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-full border border-neutral-200 bg-white text-xs font-semibold hover:bg-neutral-50 text-neutral-700 transition-all duration-200 shadow-sm cursor-pointer"
+              >
+                <svg className="w-3.5 h-3.5 text-neutral-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                Install App
+              </button>
+            )}
+
+            <button
+              onClick={() => setShowExpenseModal(true)}
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold transition-all ${
+                members.length === 0
+                  ? "bg-muted text-muted-foreground cursor-not-allowed"
+                  : "bg-primary text-primary-foreground hover:bg-primary/90"
+              }`}
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Add Expense</span>
+              <span className="sm:hidden">Add</span>
+            </button>
+
+            {isAndroidDevice && !isStandaloneMode && !showInstallBanner && (
+              <button
+                onClick={() => setShowAndroidInstallInstructions(true)}
+                className="hidden md:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full border border-border text-sm font-semibold text-foreground hover:bg-secondary transition-all"
               >
                 Install
               </button>
-              <button
-                onClick={() => setShowInstallBanner(false)}
-                className="rounded-full border border-border px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-              >
-                Dismiss
-              </button>
-            </div>
+            )}
           </div>
-        )}
-        {showAndroidInstallInstructions && !showInstallBanner && (
-          <div className="mb-6 rounded-2xl border border-border bg-secondary p-4 text-sm text-foreground">
-            <p className="font-semibold">Install AmbagApp on Android</p>
-            <p className="mt-2 text-muted-foreground">Open the browser menu and choose "Add to Home screen" to install this app.</p>
-            <button
-              onClick={() => setShowAndroidInstallInstructions(false)}
-              className="mt-3 rounded-full border border-border px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Got it
-            </button>
-          </div>
-        )}
-        {showIOSInstallInstructions && (
-          <div className="mb-6 rounded-2xl border border-border bg-secondary p-4 text-sm text-foreground">
-            <p className="font-semibold">Install AmbagApp on iOS</p>
-            <p className="mt-2 text-muted-foreground">Tap Share, then select "Add to Home Screen" to install.</p>
-            <button
-              onClick={() => setShowIOSInstallInstructions(false)}
-              className="mt-3 rounded-full border border-border px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Got it
-            </button>
-          </div>
-        )}
+        </div>
+      </nav>
         {/* ── Group Header ──────────────────────────────────── */}
         <div className="mb-8">
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-6">
